@@ -112,6 +112,30 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                                 </div>
                             </div>
 
+
+                            {/* Created By */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                    <User size={14} /> Created By
+                                </label>
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    {task.createdBy ? (
+                                        <>
+                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
+                                                {task.createdBy.avatar ? (
+                                                    <img src={`http://localhost:5000${task.createdBy.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="font-bold text-emerald-600 text-xs">{task.createdBy.name?.[0]}</span>
+                                                )}
+                                            </div>
+                                            <span className="text-sm font-medium text-slate-700">{task.createdBy.name}</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm text-slate-400 italic">Unknown</span>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Due Date & Priority */}
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -226,8 +250,8 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                     </div>
 
                 </motion.div>
-            </div>
-        </AnimatePresence>
+            </div >
+        </AnimatePresence >
     );
 };
 

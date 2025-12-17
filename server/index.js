@@ -5,12 +5,21 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+const http = require('http');
+const socketInit = require('./socket').init;
+
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+const io = socketInit(server);
 
 const path = require('path');
 
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -18,6 +27,11 @@ const projectRoutes = require('./routes/projects');
 const taskRoutes = require('./routes/tasks');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
@@ -34,4 +48,4 @@ app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

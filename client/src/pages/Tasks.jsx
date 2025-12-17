@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../context/ProjectContext';
 import { Plus, Search, Filter, MoreVertical, Calendar, Clock, CheckCircle2, Circle, AlertCircle, Trash2 } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const Tasks = () => {
     const { user } = useAuth();
@@ -43,22 +44,46 @@ const Tasks = () => {
         } catch (error) {
             console.error('Failed to update status', error);
             fetchTasks(); // Revert on error
+            toast.error('Failed to update status');
         }
     };
 
-    const handleDelete = async (taskId) => {
-        if (!window.confirm('Delete this task?')) return;
-
-        // Optimistic Delete
-        setTasks(tasks.filter(t => t._id !== taskId));
-
-        try {
-            await api.delete(`/tasks/${taskId}`);
-            fetchProjects(); // Refresh projects on delete
-        } catch (error) {
-            console.error('Failed to delete task', error);
-            fetchTasks();
-        }
+    const handleDelete = (taskId) => {
+        toast((t) => (
+            <div className="flex flex-col gap-2">
+                <span className="font-medium text-slate-800">Delete this task?</span>
+                <div className="flex gap-2 mt-1">
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t.id);
+                            // Optimistic Delete
+                            setTasks(prev => prev.filter(t => t._id !== taskId));
+                            try {
+                                await api.delete(`/tasks/${taskId}`);
+                                fetchProjects(); // Refresh projects to update progress lines
+                                toast.success('Task deleted');
+                            } catch (error) {
+                                console.error('Failed to delete task', error);
+                                fetchTasks(); // Revert
+                                toast.error('Failed to delete task');
+                            }
+                        }}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                    >
+                        Delete
+                    </button>
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="bg-slate-100 text-slate-600 px-3 py-1 rounded text-sm hover:bg-slate-200 transition-colors border border-slate-200"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: 4000,
+            position: 'top-center'
+        });
     };
 
     const getStatusColor = (status) => {
@@ -180,6 +205,9 @@ const Tasks = () => {
                                     <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{task.title}</h3>
                                     <p className="text-xs text-slate-400">
                                         Project: <span className="font-medium text-slate-600 dark:text-slate-300">{task.projectId?.title || 'Unknown'}</span>
+                                    </p>
+                                    <p className="text-xs text-slate-400">
+                                        Assigned by: <span className="font-medium text-slate-600 dark:text-slate-300">{task.createdBy?.name || 'Unknown'}</span>
                                     </p>
                                 </div>
                             </div>

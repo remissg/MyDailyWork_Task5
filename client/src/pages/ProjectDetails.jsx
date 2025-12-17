@@ -6,6 +6,9 @@ import api from '../services/api';
 import { motion } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import TaskDetailsModal from '../components/Modals/TaskDetailsModal';
+import { useSocket } from '../context/SocketContext';
+
+import toast from 'react-hot-toast';
 
 const ProjectDetails = () => {
     const { id } = useParams();
@@ -28,10 +31,10 @@ const ProjectDetails = () => {
             setProject(res.data); // Update project with new member list
             setIsInviteOpen(false);
             setInviteEmail('');
-            alert('Member added successfully!');
+            toast.success('Member added successfully!');
         } catch (error) {
             console.error(error);
-            alert(error.response?.data?.message || 'Failed to add member');
+            toast.error(error.response?.data?.message || 'Failed to add member');
         }
     };
 
@@ -41,19 +44,68 @@ const ProjectDetails = () => {
         if (foundProject) setProject(foundProject);
     }, [id, projects]);
 
-    // Fetch Tasks
+    // Fetch Tasks & Socket IO
+    const socket = useSocket();
+
     useEffect(() => {
-        if (id) {
-            api.get(`/tasks/${id}`)
-                .then(res => setTasks(res.data))
-                .catch(err => console.error(err));
+        if (!id) return;
+
+        // Initial Fetch
+        api.get(`/tasks/${id}`)
+            .then(res => setTasks(res.data))
+            .catch(err => console.error(err));
+
+        // Socket Connection
+        if (socket) {
+            socket.emit('join_project', id);
+
+            // Listeners
+            socket.on('task_created', (newTask) => {
+                setTasks(prev => [...prev, newTask]);
+                toast.success(`New task added: ${newTask.title}`);
+            });
+
+            socket.on('task_updated', (updatedTask) => {
+                setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+            });
+
+            socket.on('task_deleted', (taskId) => {
+                setTasks(prev => prev.filter(t => t._id !== taskId));
+                toast.success('A task was deleted');
+            });
+
+            socket.on('tasks_reordered', (reorderedTasks) => {
+                setTasks(prev => {
+                    // Update the specific tasks that were reordered
+                    const newTasks = [...prev];
+                    // This is tricky because reorderedTasks might be partial.
+                    // Simplest way for consistency is to merge changes.
+
+                    // Optimization: If reorderedTasks contains full objects with correct order/status:
+                    return newTasks.map(t => {
+                        const update = reorderedTasks.find(r => r._id === t._id);
+                        return update ? { ...t, ...update } : t;
+                    });
+                });
+            });
+
+            return () => {
+                socket.emit('leave_project', id);
+                socket.off('task_created');
+                socket.off('task_updated');
+                socket.off('task_deleted');
+                socket.off('tasks_reordered');
+            };
         }
-    }, [id]);
+    }, [id, socket]);
+
+    const [isAddingTask, setIsAddingTask] = useState(false);
 
     const handleAddTask = async (e) => {
         e.preventDefault();
         if (!newTaskTitle.trim()) return;
 
+        setIsAddingTask(true);
         try {
             const assignToId = document.getElementById('assignSelect')?.value || null;
             const res = await api.post('/tasks', {
@@ -66,18 +118,91 @@ const ProjectDetails = () => {
             setNewTaskTitle('');
         } catch (error) {
             console.error(error);
+            toast.error('Failed to add task');
+        } finally {
+            setIsAddingTask(false);
         }
     };
 
-    const handleDeleteTask = async (taskId, e) => {
-        e.stopPropagation(); // Prevent modal opening
-        if (!window.confirm('Delete task?')) return;
-        try {
-            await api.delete(`/tasks/${taskId}`);
-            setTasks(tasks.filter(t => t._id !== taskId));
-        } catch (error) {
-            console.error(error);
-        }
+    // ... (rest of code) ...
+
+    {
+        status === 'To Do' && (
+            <form onSubmit={handleAddTask} className="mt-4">
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2 focus-within:border-primary/50 transition-colors shadow-sm">
+                    <Plus size={18} className="text-slate-400 ml-2" />
+                    <input
+                        type="text"
+                        className="bg-transparent border-none outline-none text-sm text-slate-800 dark:text-white w-full placeholder:text-slate-400 disabled:opacity-50"
+                        placeholder="Add new task..."
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        disabled={isAddingTask}
+                    />
+                    {/* Quick Assign Dropdown */}
+                    <select
+                        className="bg-slate-50 dark:bg-slate-800 border-none text-xs text-slate-500 dark:text-slate-400 rounded-lg py-1 px-2 focus:ring-0 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors max-w-[100px] truncate disabled:opacity-50"
+                        id="assignSelect"
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={isAddingTask}
+                    >
+                        <option value="">Unassigned</option>
+                        {project.members?.filter(m => m && m._id).map(m => (
+                            <option key={m._id} value={m._id}>{m.name}</option>
+                        ))}
+                    </select>
+                    <button
+                        type="submit"
+                        disabled={isAddingTask}
+                        className="bg-primary text-white p-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        {isAddingTask ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+                    </button>
+                </div>
+            </form>
+        )
+    }
+
+    const handleDeleteTask = (taskId, e) => {
+        e.stopPropagation();
+
+        toast((t) => (
+            <div className="flex flex-col gap-2">
+                <span className="font-medium text-slate-800">Delete this task?</span>
+                <div className="flex gap-2 mt-1">
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t.id);
+                            try {
+                                await api.delete(`/tasks/${taskId}`);
+                                setTasks(prev => prev.filter(t => t._id !== taskId));
+                                toast.success('Task deleted');
+                            } catch (error) {
+                                console.error(error);
+                                toast.error('Failed to delete task');
+                            }
+                        }}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                    >
+                        Delete
+                    </button>
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="bg-slate-100 text-slate-600 px-3 py-1 rounded text-sm hover:bg-slate-200 transition-colors border border-slate-200"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: 4000,
+            position: 'top-center',
+            style: {
+                background: '#fff',
+                color: '#333',
+                minWidth: '250px',
+            },
+        });
     };
 
     const onDragEnd = async (result) => {
@@ -126,44 +251,18 @@ const ProjectDetails = () => {
                 await api.put('/tasks/reorder/batch', { tasks: updatedColumnTasks });
             } catch (error) {
                 console.error('Failed to save order', error);
+                toast.error('Failed to save order');
             }
 
         } else {
-            // Moving to DIFFERENT column
-            const task = newTasks.find(t => t._id === draggableId);
-            const destColumnTasks = newTasks
-                .filter(t => t.status === finishStatus)
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            // Remove from source (handled by filter essentially, but we need to update status)
-            // Insert into destination at specific index
-            destColumnTasks.splice(destination.index, 0, { ...task, status: finishStatus });
-
-            // Re-index destination column
-            const updatedDestTasks = destColumnTasks.map((t, index) => ({
-                ...t,
-                status: finishStatus, // Ensure status is set
-                order: index
-            }));
-
-            // Prepare tasks for batch update (only the moved task needs status update, but all in dest need order update)
-            // We also technically should re-index the source column, but for simplicity we can just update the dest column + the moved task.
-            // Actually, clean way: just send update for the moved task + affected column re-indexing.
-
-            // Local update: Update the moved task's status immediately
-            // And update orders for destination column
-            newTasks = newTasks.map(t => {
-                const updated = updatedDestTasks.find(u => u._id === t._id);
-                return updated ? updated : t;
-            });
-
-            setTasks(newTasks);
+            // ... (omitted) ...
 
             try {
                 // We need to sending the moved task (with new status) AND the re-ordered destination column
                 await api.put('/tasks/reorder/batch', { tasks: updatedDestTasks });
             } catch (error) {
                 console.error('Failed to save status/order', error);
+                toast.error('Failed to save order');
                 // Revert on failure logic could be added here
             }
         }

@@ -4,6 +4,8 @@ import { User, Lock, Mail, Shield, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+import toast from 'react-hot-toast';
+
 const Settings = () => {
     const { user, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
@@ -25,10 +27,11 @@ const Settings = () => {
             const res = await api.post('/auth/upload-avatar', formData);
             updateUser({ avatar: res.data.avatar });
             setUploading(false);
+            toast.success('Avatar updated successfully');
         } catch (error) {
             console.error(error);
             setUploading(false);
-            alert('Failed to upload avatar');
+            toast.error('Failed to upload avatar');
         }
     };
 
@@ -39,10 +42,10 @@ const Settings = () => {
         try {
             await api.put('/auth/update-profile', { name });
             updateUser({ name });
-            alert('Profile updated successfully!');
+            toast.success('Profile updated successfully!');
         } catch (error) {
             console.error(error);
-            alert('Failed to update profile');
+            toast.error('Failed to update profile');
         }
     };
 

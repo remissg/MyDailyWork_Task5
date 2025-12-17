@@ -6,20 +6,23 @@ import './index.css'
 
 import { ProjectProvider } from './context/ProjectContext.jsx';
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import ToasterProvider from './components/Providers/ToasterProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <ProjectProvider>
-        <ThemeProvider>
-          <BrowserRouter>
-            <App />
-            <ToasterProvider />
-          </BrowserRouter>
-        </ThemeProvider>
-      </ProjectProvider>
+      <SocketProvider>
+        <ProjectProvider>
+          <ThemeProvider>
+            <BrowserRouter>
+              <App />
+              <ToasterProvider />
+            </BrowserRouter>
+          </ThemeProvider>
+        </ProjectProvider>
+      </SocketProvider>
     </AuthProvider>
   </React.StrictMode>,
 )

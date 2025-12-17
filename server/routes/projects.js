@@ -47,6 +47,15 @@ router.put('/:id/members', auth, async (req, res) => {
                 message: `You were added to project "${project.title}"`,
                 relatedId: project._id
             });
+
+            // Send Email
+            const sendEmail = require('../services/email');
+            const emailHtml = `
+                <h3>Hello ${userToAdd.name},</h3>
+                <p>You have been added to the project <strong>${project.title}</strong> by ${req.user.name || 'a team member'}.</p>
+                <p>Login to view the project: <a href="http://localhost:5173/app/projects/${project._id}">View Project</a></p>
+            `;
+            sendEmail(userToAdd.email, `Project Invitation: ${project.title}`, emailHtml);
         }
 
         // Return updated project with populated members

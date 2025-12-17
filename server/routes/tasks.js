@@ -24,7 +24,8 @@ router.get('/', auth, async (req, res) => {
         // Populate project info so we can show "Project Name" on the card
         const tasks = await Task.find({ projectId: { $in: projectIds } })
             .populate('projectId', 'title')
-            .populate('assignedTo', 'name avatar');
+            .populate('assignedTo', 'name avatar')
+            .populate('createdBy', 'name');
 
         res.json(tasks);
     } catch (err) {
@@ -38,7 +39,8 @@ router.get('/:projectId', auth, async (req, res) => {
     try {
         const tasks = await Task.find({ projectId: req.params.projectId })
             .sort({ order: 1 }) // Sort by order ascending
-            .populate('assignedTo', 'name avatar');
+            .populate('assignedTo', 'name avatar')
+            .populate('createdBy', 'name');
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -55,7 +57,8 @@ router.post('/', auth, async (req, res) => {
         description: req.body.description || '',
         priority: req.body.priority || 'Medium',
         dueDate: req.body.dueDate || null,
-        order: req.body.order || 0
+        order: req.body.order || 0,
+        createdBy: req.user.id
     });
 
     try {
@@ -80,6 +83,20 @@ router.post('/', auth, async (req, res) => {
             console.log('[POST /tasks] Notification condition failed (Self-assignment or no assignee)');
         }
 
+        // Email Notification for Assignment
+        if (newTask.assignedTo && newTask.assignedTo._id.toString() !== req.user.id.toString()) {
+            // assignedTo is populated above, so we can access email
+            const assignee = newTask.assignedTo;
+            const sendEmail = require('../services/email');
+            const emailHtml = `
+                <h3>Hello ${assignee.name},</h3>
+                <p>You have been assigned to a new task: <strong>${newTask.title}</strong>.</p>
+                <p>Priority: ${newTask.priority}</p>
+                <p><a href="http://localhost:5173/app/projects/${newTask.projectId}">View Task</a></p>
+             `;
+            sendEmail(assignee.email, `New Task Assignment: ${newTask.title}`, emailHtml);
+        }
+
         res.status(201).json(newTask);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -89,21 +106,32 @@ router.post('/', auth, async (req, res) => {
 // Reorder tasks (Bulk Update)
 router.put('/reorder/batch', auth, async (req, res) => {
     try {
-        const { tasks } = req.body; 
+        const { tasks } = req.body;
         // tasks = [{ _id: '...', order: 0, status: '...' }, ...]
 
         if (!tasks || !Array.isArray(tasks)) {
             return res.status(400).json({ message: 'Invalid data format' });
         }
 
-        const updatePromises = tasks.map(t => 
-             Task.findByIdAndUpdate(t._id, { 
-                 order: t.order, 
-                 status: t.status 
-             })
+        const updatePromises = tasks.map(t =>
+            Task.findByIdAndUpdate(t._id, {
+                order: t.order,
+                status: t.status
+            })
         );
 
         await Promise.all(updatePromises);
+
+        // We need to fetch the reordered tasks to emit them or just emit a signal to refetch?
+        // Better to emit the updated list or just the changed items.
+        // For simplicity/robustness, let's emit the specific tasks that changed if possible, 
+        // or just a 'tasks_reordered' event with the new data from request is faster.
+        // Assuming client sends full objects for reordered tasks:
+        if (tasks.length > 0) {
+            const projectId = tasks[0].projectId || (await Task.findById(tasks[0]._id)).projectId;
+            req.io.to(projectId.toString()).emit('tasks_reordered', tasks);
+        }
+
         res.json({ message: 'Tasks reordered successfully' });
     } catch (err) {
         console.error('Reorder error:', err);
@@ -154,6 +182,9 @@ router.post('/:id/comments', auth, async (req, res) => {
         await task.populate('comments.userId', 'name avatar');
         await task.populate('assignedTo', 'name avatar');
 
+        // Emit socket event
+        req.io.to(task.projectId.toString()).emit('task_updated', task);
+
         res.json(task);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -163,7 +194,15 @@ router.post('/:id/comments', auth, async (req, res) => {
 // Delete task
 router.delete('/:id', auth, async (req, res) => {
     try {
-        await Task.findByIdAndDelete(req.params.id);
+        const task = await Task.findById(req.params.id);
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+        const projectId = task.projectId.toString();
+        await task.deleteOne(); // Use deleteOne() for document middleware if necessary
+
+        req.io.to(projectId).emit('task_deleted', req.params.id);
+
         res.json({ message: 'Task deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
