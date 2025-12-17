@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Bell, User, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { SERVER_BASE_URL } from '../../config/constants';
 
 import NotificationDropdown from '../Navigation/NotificationDropdown';
 
@@ -37,7 +38,7 @@ const Header = ({ onMenuClick }) => {
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold ring-2 ring-white overflow-hidden">
                         {user?.avatar ? (
                             <img
-                                src={`http://localhost:5000${user.avatar}`}
+                                src={`${SERVER_BASE_URL}${user.avatar}`}
                                 alt="Profile"
                                 className="w-full h-full object-cover"
                             />

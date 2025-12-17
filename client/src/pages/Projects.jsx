@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Filter, Calendar, MoreVertical, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { useProjects } from '../context/ProjectContext';
 import CreateProjectModal from '../components/Modals/CreateProjectModal';
+import { SERVER_BASE_URL } from '../config/constants';
 
 const Projects = () => {
     const { projects, loading } = useProjects();
@@ -112,7 +113,7 @@ const Projects = () => {
                                                 {project.members?.slice(0, 3).map((member, i) => (
                                                     <div key={i} className="w-6 h-6 rounded-full border border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden" title={member.name}>
                                                         {member.avatar ? (
-                                                            <img src={`http://localhost:5000${member.avatar}`} alt={member.name} className="w-full h-full object-cover" />
+                                                            <img src={`${SERVER_BASE_URL}${member.avatar}`} alt={member.name} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <span className="text-[10px] font-bold text-slate-500">{member.name?.charAt(0)}</span>
                                                         )}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User, Lock, Mail, Shield, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { SERVER_BASE_URL } from '../config/constants';
 
 import toast from 'react-hot-toast';
 
@@ -95,7 +96,7 @@ const Settings = () => {
                             <div className="flex items-center gap-6 mb-8">
                                 <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center text-2xl font-bold text-slate-400 relative">
                                     {user?.avatar ? (
-                                        <img src={`http://localhost:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                        <img src={`${SERVER_BASE_URL}${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
                                         user?.name?.charAt(0)
                                     )}

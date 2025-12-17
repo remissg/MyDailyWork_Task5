@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Calendar, MessageSquare, User, Clock, Flag, Send } from 'lucide-react';
 import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SERVER_BASE_URL } from '../../config/constants';
 
 const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
     const [description, setDescription] = useState('');
@@ -106,7 +107,7 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                                             <>
                                                 <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center overflow-hidden flex-shrink-0">
                                                     {task.assignedTo.avatar ? (
-                                                        <img src={`http://localhost:5000${task.assignedTo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                                        <img src={`${SERVER_BASE_URL}${task.assignedTo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                                                     ) : (
                                                         <span className="font-bold text-indigo-500 dark:text-indigo-400 text-xs">{task.assignedTo.name?.[0]}</span>
                                                     )}
@@ -130,7 +131,7 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                                             <>
                                                 <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center overflow-hidden flex-shrink-0">
                                                     {task.createdBy.avatar ? (
-                                                        <img src={`http://localhost:5000${task.createdBy.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                                        <img src={`${SERVER_BASE_URL}${task.createdBy.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                                                     ) : (
                                                         <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">{task.createdBy.name?.[0]}</span>
                                                     )}
@@ -207,7 +208,7 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                                         <div key={index} className="flex gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden mt-1">
                                                 {comment.userId?.avatar ? (
-                                                    <img src={`http://localhost:5000${comment.userId.avatar}`} className="w-full h-full object-cover" />
+                                                    <img src={`${SERVER_BASE_URL}${comment.userId.avatar}`} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center font-bold text-xs text-slate-500 dark:text-slate-400">
                                                         {comment.userId?.name?.[0] || '?'}

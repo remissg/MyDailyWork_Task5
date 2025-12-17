@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import TaskDetailsModal from '../components/Modals/TaskDetailsModal';
 import { useSocket } from '../context/SocketContext';
+import { SERVER_BASE_URL } from '../config/constants';
 
 import toast from 'react-hot-toast';
 
@@ -334,7 +335,7 @@ const ProjectDetails = () => {
                                 {project.members?.map((member, index) => (
                                     <div key={member._id || index} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden" title={member.name}>
                                         {member.avatar ? (
-                                            <img src={`http://localhost:5000${member.avatar}`} alt={member.name} className="w-full h-full object-cover" />
+                                            <img src={`${SERVER_BASE_URL}${member.avatar}`} alt={member.name} className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-xs font-bold text-slate-500">{member.name?.charAt(0)}</span>
                                         )}
@@ -495,7 +496,7 @@ const ProjectDetails = () => {
                                                                     <div className="flex items-center gap-2" title={`Assigned to ${task.assignedTo.name}`}>
                                                                         <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
                                                                             {task.assignedTo.avatar ? (
-                                                                                <img src={`http://localhost:5000${task.assignedTo.avatar}`} alt={task.assignedTo.name} className="w-full h-full object-cover" />
+                                                                                <img src={`${SERVER_BASE_URL}${task.assignedTo.avatar}`} alt={task.assignedTo.name} className="w-full h-full object-cover" />
                                                                             ) : (
                                                                                 <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-slate-500">
                                                                                     {task.assignedTo.name?.charAt(0)}
