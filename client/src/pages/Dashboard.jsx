@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProjects } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import CreateProjectModal from '../components/Modals/CreateProjectModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -88,9 +89,35 @@ const ProjectCard = ({ project }) => {
 };
 
 const Dashboard = () => {
-    const { projects, loading } = useProjects();
+    const { projects, loading, fetchProjects } = useProjects();
     const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Real-time Updates
+    const socket = useSocket();
+
+    useEffect(() => {
+        if (socket) {
+            // Re-fetch projects when any task activity occurs
+            // This is "brute force" but ensures 100% accuracy for progress stats
+            const handleUpdate = () => {
+                fetchProjects();
+            };
+
+            socket.on('task_created', handleUpdate);
+            socket.on('task_updated', handleUpdate);
+            socket.on('task_deleted', handleUpdate);
+            // Also listen for project updates (like new members)
+            socket.on('project_updated', handleUpdate);
+
+            return () => {
+                socket.off('task_created', handleUpdate);
+                socket.off('task_updated', handleUpdate);
+                socket.off('task_deleted', handleUpdate);
+                socket.off('project_updated', handleUpdate);
+            };
+        }
+    }, [socket, fetchProjects]);
 
     if (loading) {
         return (
