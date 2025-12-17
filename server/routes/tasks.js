@@ -149,6 +149,11 @@ router.put('/:id', auth, async (req, res) => {
         )
             .populate('assignedTo', 'name avatar')
             .populate('comments.userId', 'name avatar');
+
+        if (updatedTask) {
+            req.io.to(updatedTask.projectId.toString()).emit('task_updated', updatedTask);
+        }
+
         res.json(updatedTask);
     } catch (err) {
         res.status(400).json({ message: err.message });

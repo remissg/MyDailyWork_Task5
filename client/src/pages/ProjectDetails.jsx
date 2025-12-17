@@ -255,15 +255,41 @@ const ProjectDetails = () => {
             }
 
         } else {
-            // ... (omitted) ...
+            // Dragging to DIFFERENT column
+            const sourceColumn = newTasks
+                .filter(t => t.status === startStatus)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            const destColumn = newTasks
+                .filter(t => t.status === finishStatus)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            const [movedTask] = sourceColumn.splice(source.index, 1);
+            movedTask.status = finishStatus; // Update status
+
+            destColumn.splice(destination.index, 0, movedTask);
+
+            // Update orders for destination column
+            const updatedDestTasks = destColumn.map((t, index) => ({
+                ...t,
+                order: index,
+                status: finishStatus // Ensure status is set
+            }));
+
+            // Merge everything back to newTasks state
+            // 1. Remove all from source/dest
+            newTasks = newTasks.filter(t => t.status !== startStatus && t.status !== finishStatus);
+            // 2. Add back updated source (gaps in order are fine, or we could re-index source too)
+            newTasks = [...newTasks, ...sourceColumn, ...updatedDestTasks];
+
+            setTasks(newTasks);
 
             try {
-                // We need to sending the moved task (with new status) AND the re-ordered destination column
+                // Send the updated destination column (contains the moved task with new status)
                 await api.put('/tasks/reorder/batch', { tasks: updatedDestTasks });
             } catch (error) {
                 console.error('Failed to save status/order', error);
                 toast.error('Failed to save order');
-                // Revert on failure logic could be added here
             }
         }
     };
@@ -283,11 +309,11 @@ const ProjectDetails = () => {
     return (
         <div className="max-w-5xl mx-auto">
             <button
-                onClick={() => navigate('/app')}
+                onClick={() => navigate('/app/projects')}
                 className="flex items-center gap-2 text-slate-500 hover:text-primary mb-6 transition-colors"
             >
                 <ArrowLeft size={20} />
-                Back to Dashboard
+                Back to Projects
             </button>
 
             <div className="flex items-center justify-between mb-8">
@@ -368,6 +394,56 @@ const ProjectDetails = () => {
                     <span className="text-sm text-slate-500 dark:text-slate-400">Progress</span>
                     <span className="text-xl font-bold text-primary">{project.progress || 0}%</span>
                 </div>
+
+                <div className="ml-4">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toast((t) => (
+                                <div className="flex flex-col gap-2">
+                                    <span className="font-medium text-slate-800">Delete Project "{project.title}"?</span>
+                                    <span className="text-xs text-slate-500">This will delete all tasks within this project.</span>
+                                    <div className="flex gap-2 mt-2">
+                                        <button
+                                            onClick={async () => {
+                                                toast.dismiss(t.id);
+                                                try {
+                                                    await api.delete(`/projects/${id}`);
+                                                    toast.success('Project deleted');
+                                                    navigate('/app');
+                                                } catch (error) {
+                                                    console.error(error);
+                                                    toast.error('Failed to delete project');
+                                                }
+                                            }}
+                                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                                        >
+                                            Confirm Delete
+                                        </button>
+                                        <button
+                                            onClick={() => toast.dismiss(t.id)}
+                                            className="bg-slate-100 text-slate-600 px-3 py-1 rounded text-sm hover:bg-slate-200 transition-colors border border-slate-200"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ), {
+                                duration: 5000,
+                                position: 'top-center',
+                                style: {
+                                    background: '#fff',
+                                    color: '#333',
+                                    minWidth: '300px',
+                                },
+                            });
+                        }}
+                        className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors border border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-900/30"
+                        title="Delete Project"
+                    >
+                        <Trash2 size={20} />
+                    </button>
+                </div>
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
@@ -401,7 +477,7 @@ const ProjectDetails = () => {
                                                             {...provided.dragHandleProps}
                                                             style={{ ...provided.draggableProps.style }}
                                                             onClick={() => handleTaskClick(task)}
-                                                            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:border-primary/30 group transition-all relative cursor-pointer ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary/50 rotate-2' : ''
+                                                            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:border-primary/30 group transition-all relative cursor-grab active:cursor-grabbing ${snapshot.isDragging ? 'shadow-xl ring-2 ring-primary/50 rotate-2' : ''
                                                                 }`}
                                                         >
                                                             <div className="flex justify-between items-start mb-2">

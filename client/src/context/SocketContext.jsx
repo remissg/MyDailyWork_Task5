@@ -12,7 +12,12 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            const newSocket = io('http://localhost:5000');
+            // Determine socket URL: use env var or default to current host + port 5000
+            // If VITE_API_URL is 'http://localhost:5000/api', we probably want 'http://localhost:5000'
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const socketUrl = apiUrl.replace('/api', '');
+
+            const newSocket = io(socketUrl);
             setSocket(newSocket);
 
             return () => newSocket.close();

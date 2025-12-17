@@ -11,18 +11,16 @@ import { ThemeProvider } from './context/ThemeContext.jsx';
 import ToasterProvider from './components/Providers/ToasterProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <SocketProvider>
-        <ProjectProvider>
-          <ThemeProvider>
-            <BrowserRouter>
-              <App />
-              <ToasterProvider />
-            </BrowserRouter>
-          </ThemeProvider>
-        </ProjectProvider>
-      </SocketProvider>
-    </AuthProvider>
-  </React.StrictMode>,
+  <AuthProvider>
+    <SocketProvider>
+      <ProjectProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+            <ToasterProvider />
+          </BrowserRouter>
+        </ThemeProvider>
+      </ProjectProvider>
+    </SocketProvider>
+  </AuthProvider>,
 )
