@@ -5,7 +5,7 @@ let io;
 const init = (server) => {
     io = socketIo(server, {
         cors: {
-            origin: "http://localhost:5173", // Client URL
+            origin: process.env.CLIENT_URL || "http://localhost:5173",
             methods: ["GET", "POST", "PUT", "DELETE"],
             credentials: true
         }
