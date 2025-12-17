@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogIn, Layout, Mail, Lock } from 'lucide-react';
+import { LogIn, Layout as LayoutIcon, Mail, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (user) {
+            navigate('/app');
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,7 +32,7 @@ const Login = () => {
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
                     <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 mx-auto mb-4">
-                        <Layout className="text-white" size={24} />
+                        <LayoutIcon className="text-white" size={24} />
                     </div>
                     <h2 className="text-3xl font-bold text-slate-900">Welcome Back</h2>
                     <p className="text-slate-500 mt-2">Sign in to continue to PMS Pro</p>
@@ -35,6 +41,7 @@ const Login = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl shadow-slate-200/50"
                 >
                     {error && (

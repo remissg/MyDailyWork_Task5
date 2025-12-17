@@ -21,11 +21,8 @@ const Settings = () => {
         try {
             // Need to use axios directly or update api.js to handle multipart
             // Assuming api instance can handle it, or we configure content-type
-            const res = await api.post('/auth/upload-avatar', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            // Axios automatically sets Content-Type to multipart/form-data with correct boundary for FormData
+            const res = await api.post('/auth/upload-avatar', formData);
             updateUser({ avatar: res.data.avatar });
             setUploading(false);
         } catch (error) {
@@ -53,8 +50,8 @@ const Settings = () => {
         <div className="max-w-4xl mx-auto space-y-8">
             {/* Header */}
             <div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-1">Settings</h2>
-                <p className="text-slate-500">Manage your account preferences</p>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">Settings</h2>
+                <p className="text-slate-500 dark:text-slate-400">Manage your account preferences</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-8">
@@ -64,7 +61,7 @@ const Settings = () => {
                         onClick={() => setActiveTab('profile')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'profile'
                             ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'bg-white text-slate-500 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+                            : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
                             }`}
                     >
                         <User size={20} />
@@ -74,7 +71,7 @@ const Settings = () => {
                         onClick={() => setActiveTab('security')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'security'
                             ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'bg-white text-slate-500 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+                            : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
                             }`}
                     >
                         <Shield size={20} />
@@ -88,12 +85,12 @@ const Settings = () => {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6"
+                            className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6"
                         >
-                            <h3 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Personal Information</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">Personal Information</h3>
 
                             <div className="flex items-center gap-6 mb-8">
-                                <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-slate-200 overflow-hidden flex items-center justify-center text-2xl font-bold text-slate-400 relative">
+                                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center text-2xl font-bold text-slate-400 relative">
                                     {user?.avatar ? (
                                         <img src={`http://localhost:5000${user.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
@@ -127,40 +124,40 @@ const Settings = () => {
                             <form onSubmit={handleUpdateProfile} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Full Name</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
                                         <div className="relative">
                                             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                             <input
                                                 type="text"
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900"
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Role</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
                                         <div className="relative">
                                             <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                             <input
                                                 type="text"
                                                 defaultValue={user?.role}
                                                 disabled
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                             />
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">Email Address</label>
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
                                             type="email"
                                             defaultValue={user?.email}
                                             disabled
-                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                         />
                                     </div>
                                     <p className="text-xs text-slate-400 ml-1">Email cannot be changed for security reasons.</p>
@@ -180,43 +177,43 @@ const Settings = () => {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6"
+                            className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6"
                         >
-                            <h3 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Security Preferences</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">Security Preferences</h3>
 
                             <form className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">Current Password</label>
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Current Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
                                             type="password"
                                             placeholder="••••••••"
-                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 dark:text-white"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">New Password</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">New Password</label>
                                         <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                             <input
                                                 type="password"
                                                 placeholder="••••••••"
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900"
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Confirm Password</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Confirm Password</label>
                                         <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                             <input
                                                 type="password"
                                                 placeholder="••••••••"
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900"
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-slate-900 dark:text-white"
                                             />
                                         </div>
                                     </div>

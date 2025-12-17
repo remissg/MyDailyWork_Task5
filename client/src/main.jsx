@@ -4,16 +4,21 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import './index.css'
 
-import { ProjectProvider } from './context/ProjectContext';
+import { ProjectProvider } from './context/ProjectContext.jsx';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import ToasterProvider from './components/Providers/ToasterProvider.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
       <ProjectProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+            <ToasterProvider />
+          </BrowserRouter>
+        </ThemeProvider>
       </ProjectProvider>
     </AuthProvider>
   </React.StrictMode>,

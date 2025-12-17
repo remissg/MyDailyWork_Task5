@@ -2,7 +2,63 @@ const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const User = require('../models/User'); // Import User model
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
+
+// Add member to project by email
+router.put('/:id/members', auth, async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(`[Inviting Memember] Request to invite email: "${email}" to project ${req.params.id}`);
+
+        // 1. Find user by email (case insensitive)
+        const userToAdd = await User.findOne({ email: email.toLowerCase() }); // Ensure lowercase match if stored as such, or regex
+        // Better: usage regex for case insensitive search
+        // const userToAdd = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+
+        if (!userToAdd) {
+            console.log(`[Inviting Member] User not found for email: "${email}"`);
+            return res.status(404).json({ message: 'User not found with this email' });
+        }
+        console.log(`[Inviting Member] Found user: ${userToAdd.name} (${userToAdd._id})`);
+        if (!userToAdd) {
+            return res.status(404).json({ message: 'User not found with this email' });
+        }
+
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        // 2. Check auth (Only owner/members can add? For now let's say only owner)
+        // if (project.userId.toString() !== req.user.id) {
+        //     return res.status(401).json({ message: 'Not authorized' });
+        // }
+
+        // 3. Add to members if not already there (using addToSet to handle uniqueness at DB level)
+        project.members.addToSet(userToAdd._id);
+        await project.save();
+
+        // Notification: Project Invitation
+        if (userToAdd._id.toString() !== req.user.id) {
+            await Notification.create({
+                recipient: userToAdd._id,
+                sender: req.user.id,
+                type: 'INVITE',
+                message: `You were added to project "${project.title}"`,
+                relatedId: project._id
+            });
+        }
+
+        // Return updated project with populated members
+        const updatedProject = await Project.findById(req.params.id)
+            .populate('members', 'name avatar email');
+
+        res.json(updatedProject);
+
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 // Get all projects for logged in user
 router.get('/', auth, async (req, res) => {
