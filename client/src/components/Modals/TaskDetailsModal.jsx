@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, MessageSquare, User, Clock, Flag, Send } from 'lucide-react';
 import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,22 +62,26 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div
+                className="fixed inset-0 left-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm"
+                onClick={onClose}
+            >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full max-w-4xl max-h-[95vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between bg-slate-50/50 dark:bg-slate-800/50">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 sm:p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
                                 <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${priorityColors[priority] || 'bg-slate-100 dark:bg-slate-700 dark:text-slate-300'}`}>
                                     {priority}
                                 </span>
-                                <span className="text-xs text-slate-400 font-mono">#{task._id.slice(-6)}</span>
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{task.title}</h2>
+                            <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white truncate">{task.title}</h2>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-full transition-colors text-slate-500 dark:text-slate-400">
                             <X size={20} />
@@ -84,81 +89,84 @@ const TaskDetailsModal = ({ isOpen, onClose, task, onUpdate }) => {
                     </div>
 
                     {/* Scrollable Body */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
 
                         {/* Meta Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
 
-                            {/* Assignee */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                    <User size={14} /> Assignee
-                                </label>
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                    {task.assignedTo ? (
-                                        <>
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
-                                                {task.assignedTo.avatar ? (
-                                                    <img src={`http://localhost:5000${task.assignedTo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="font-bold text-indigo-500 text-xs">{task.assignedTo.name?.[0]}</span>
-                                                )}
-                                            </div>
-                                            <span className="text-sm font-medium text-slate-700">{task.assignedTo.name}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-sm text-slate-400 italic">Unassigned</span>
-                                    )}
+                            {/* Assignee & Created By Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                {/* Assignee */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <User size={12} /> Assignee
+                                    </label>
+                                    <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                        {task.assignedTo ? (
+                                            <>
+                                                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    {task.assignedTo.avatar ? (
+                                                        <img src={`http://localhost:5000${task.assignedTo.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="font-bold text-indigo-500 dark:text-indigo-400 text-xs">{task.assignedTo.name?.[0]}</span>
+                                                    )}
+                                                </div>
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{task.assignedTo.name}</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-sm text-slate-400 italic">Unassigned</span>
+                                        )}
+                                    </div>
+                                </div>
+
+
+                                {/* Created By */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <User size={12} /> Created By
+                                    </label>
+                                    <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                        {task.createdBy ? (
+                                            <>
+                                                <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    {task.createdBy.avatar ? (
+                                                        <img src={`http://localhost:5000${task.createdBy.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">{task.createdBy.name?.[0]}</span>
+                                                    )}
+                                                </div>
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{task.createdBy.name}</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-sm text-slate-400 italic">Unknown</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-
-                            {/* Created By */}
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                    <User size={14} /> Created By
-                                </label>
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                    {task.createdBy ? (
-                                        <>
-                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
-                                                {task.createdBy.avatar ? (
-                                                    <img src={`http://localhost:5000${task.createdBy.avatar}`} alt="Avatar" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="font-bold text-emerald-600 text-xs">{task.createdBy.name?.[0]}</span>
-                                                )}
-                                            </div>
-                                            <span className="text-sm font-medium text-slate-700">{task.createdBy.name}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-sm text-slate-400 italic">Unknown</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Due Date & Priority */}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                        <Calendar size={14} /> Due Date
+                            {/* Due Date & Priority Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Calendar size={12} /> Due Date
                                     </label>
                                     <input
                                         type="date"
                                         value={dueDate}
                                         onChange={(e) => setDueDate(e.target.value)}
                                         onBlur={handleSaveDetails}
-                                        className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 dark:text-slate-200"
+                                        className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 dark:text-slate-200"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                        <Flag size={14} /> Priority
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Flag size={12} /> Priority
                                     </label>
                                     <select
                                         value={priority}
-                                        onChange={(e) => { setPriority(e.target.value); handleSaveDetails(); }} // Save immediately on change? or wait? let's wait for now, or just trigger save
-                                        // Better UX: trigger save on change
-                                        className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 dark:text-slate-200 appearance-none cursor-pointer"
+                                        onChange={(e) => setPriority(e.target.value)}
+                                        onBlur={handleSaveDetails}
+                                        className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 dark:text-slate-200 appearance-none cursor-pointer"
                                     >
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>

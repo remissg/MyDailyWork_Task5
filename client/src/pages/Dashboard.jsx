@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, MoreVertical, Calendar, Clock, Loader2, TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, MoreVertical, Calendar, Clock, Loader2, TrendingUp, PieChart as PieIcon, AlertCircle, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProjects } from '../context/ProjectContext';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import CreateProjectModal from '../components/Modals/CreateProjectModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import api from '../services/api';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -92,29 +93,78 @@ const Dashboard = () => {
     const { projects, loading, fetchProjects } = useProjects();
     const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [tasks, setTasks] = useState([]);
+    const [tasksLoading, setTasksLoading] = useState(true);
+    const navigate = useNavigate();
+    const [recentActivity, setRecentActivity] = useState([]);
 
     // Real-time Updates
     const socket = useSocket();
 
+    // Fetch Tasks
+    const fetchTasks = async () => {
+        try {
+            const res = await api.get('/tasks');
+            setTasks(res.data);
+            setTasksLoading(false);
+        } catch (err) {
+            console.error('Error fetching tasks:', err);
+            setTasksLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            fetchTasks();
+        }
+    }, [user]);
+
+    // Track activity
+    const addActivity = (type, message) => {
+        const newActivity = {
+            id: Date.now(),
+            type,
+            message,
+            timestamp: new Date()
+        };
+        setRecentActivity(prev => [newActivity, ...prev].slice(0, 5)); // Keep only last 5
+    };
+
     useEffect(() => {
         if (socket) {
-            // Re-fetch projects when any task activity occurs
-            // This is "brute force" but ensures 100% accuracy for progress stats
-            const handleUpdate = () => {
+            const handleTaskCreated = (task) => {
                 fetchProjects();
+                fetchTasks();
+                addActivity('task_created', `New task created: "${task.title}"`);
             };
 
-            socket.on('task_created', handleUpdate);
-            socket.on('task_updated', handleUpdate);
-            socket.on('task_deleted', handleUpdate);
-            // Also listen for project updates (like new members)
-            socket.on('project_updated', handleUpdate);
+            const handleTaskUpdated = (task) => {
+                fetchProjects();
+                fetchTasks();
+                addActivity('task_updated', `Task "${task.title}" was updated`);
+            };
+
+            const handleTaskDeleted = () => {
+                fetchProjects();
+                fetchTasks();
+                addActivity('task_deleted', 'A task was deleted');
+            };
+
+            const handleProjectUpdated = () => {
+                fetchProjects();
+                addActivity('project_updated', 'A project was updated');
+            };
+
+            socket.on('task_created', handleTaskCreated);
+            socket.on('task_updated', handleTaskUpdated);
+            socket.on('task_deleted', handleTaskDeleted);
+            socket.on('project_updated', handleProjectUpdated);
 
             return () => {
-                socket.off('task_created', handleUpdate);
-                socket.off('task_updated', handleUpdate);
-                socket.off('task_deleted', handleUpdate);
-                socket.off('project_updated', handleUpdate);
+                socket.off('task_created', handleTaskCreated);
+                socket.off('task_updated', handleTaskUpdated);
+                socket.off('task_deleted', handleTaskDeleted);
+                socket.off('project_updated', handleProjectUpdated);
             };
         }
     }, [socket, fetchProjects]);
@@ -235,6 +285,96 @@ const Dashboard = () => {
                         </div>
                     </motion.div>
                 </div>
+            )}
+
+            {/* Upcoming Deadlines */}
+            {!tasksLoading && tasks.length > 0 && (() => {
+                const threeDaysFromNow = new Date();
+                threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+                const upcomingTasks = tasks.filter(task => {
+                    if (!task.dueDate || task.status === 'Done') return false;
+                    const dueDate = new Date(task.dueDate);
+                    return dueDate <= threeDaysFromNow && dueDate >= new Date();
+                }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+                if (upcomingTasks.length === 0) return null;
+
+                return (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-900/30 p-6 rounded-2xl shadow-sm"
+                    >
+                        <div className="flex items-center gap-2 mb-4">
+                            <AlertCircle className="text-amber-600 dark:text-amber-400" size={20} />
+                            <h3 className="font-bold text-slate-800 dark:text-white">Upcoming Deadlines</h3>
+                            <span className="ml-auto text-xs bg-amber-600 text-white px-2 py-1 rounded-full">{upcomingTasks.length}</span>
+                        </div>
+                        <div className="space-y-2">
+                            {upcomingTasks.slice(0, 5).map(task => {
+                                const daysUntilDue = Math.ceil((new Date(task.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+                                return (
+                                    <div
+                                        key={task._id}
+                                        onClick={() => navigate(`/app/projects/${task.projectId._id}`)}
+                                        className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-amber-100 dark:border-amber-900/20 hover:border-amber-300 dark:hover:border-amber-700 transition-colors cursor-pointer group"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <p className="font-medium text-slate-800 dark:text-white group-hover:text-primary transition-colors">{task.title}</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                    {task.projectId?.title || 'Unknown Project'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right ml-4">
+                                                <p className={`text-sm font-bold ${daysUntilDue === 0 ? 'text-red-600' : daysUntilDue === 1 ? 'text-orange-600' : 'text-amber-600'}`}>
+                                                    {daysUntilDue === 0 ? 'Today' : daysUntilDue === 1 ? 'Tomorrow' : `${daysUntilDue} days`}
+                                                </p>
+                                                <p className="text-xs text-slate-400">{new Date(task.dueDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                );
+            })()}
+
+            {/* Recent Activity Feed */}
+            {recentActivity.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm"
+                >
+                    <div className="flex items-center gap-2 mb-4">
+                        <Activity className="text-primary" size={20} />
+                        <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {recentActivity.map((activity) => (
+                            <motion.div
+                                key={activity.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="flex items-start gap-3 text-sm"
+                            >
+                                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${activity.type === 'task_created' ? 'bg-green-500' :
+                                    activity.type === 'task_updated' ? 'bg-blue-500' :
+                                        activity.type === 'task_deleted' ? 'bg-red-500' :
+                                            'bg-purple-500'
+                                    }`} />
+                                <div className="flex-1">
+                                    <p className="text-slate-700 dark:text-slate-300">{activity.message}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </motion.div>
             )}
 
             <div>

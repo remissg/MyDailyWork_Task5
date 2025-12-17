@@ -5,6 +5,7 @@ import { useProjects } from '../context/ProjectContext';
 import { Plus, Search, Filter, MoreVertical, Calendar, Clock, CheckCircle2, Circle, AlertCircle, Trash2 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import TaskDetailsModal from '../components/Modals/TaskDetailsModal';
 
 const Tasks = () => {
     const { user } = useAuth();
@@ -13,6 +14,8 @@ const Tasks = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         fetchTasks();
@@ -131,6 +134,17 @@ const Tasks = () => {
         document.body.removeChild(link);
     };
 
+    const handleTaskClick = (task) => {
+        setSelectedTask(task);
+        setIsModalOpen(true);
+    };
+
+    const handleTaskUpdate = (updatedTask) => {
+        setTasks(tasks.map(t => t._id === updatedTask._id ? updatedTask : t));
+        setSelectedTask(updatedTask);
+        fetchProjects(); // Update project progress
+    };
+
     if (loading) return <div className="text-center py-20 text-slate-500">Loading tasks...</div>;
 
     return (
@@ -195,13 +209,16 @@ const Tasks = () => {
                         >
                             <div className="flex items-center gap-4">
                                 <button
-                                    onClick={() => handleStatusUpdate(task._id, task.status)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusUpdate(task._id, task.status);
+                                    }}
                                     className={`p-2 rounded-lg transition-colors hover:bg-slate-200 dark:hover:bg-slate-800 ${getStatusColor(task.status)}`}
                                     title="Click to change status"
                                 >
                                     {getStatusIcon(task.status)}
                                 </button>
-                                <div>
+                                <div className="cursor-pointer" onClick={() => handleTaskClick(task)}>
                                     <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{task.title}</h3>
                                     <p className="text-xs text-slate-400">
                                         Project: <span className="font-medium text-slate-600 dark:text-slate-300">{task.projectId?.title || 'Unknown'}</span>
@@ -234,6 +251,14 @@ const Tasks = () => {
                     ))
                 )}
             </div>
+
+            {/* Task Details Modal */}
+            <TaskDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                task={selectedTask}
+                onUpdate={handleTaskUpdate}
+            />
         </div>
     );
 };
